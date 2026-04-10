@@ -1,0 +1,27 @@
+[package]
+name = "dynamo-demo-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# The two crates being showcased
+dynamo-protocols = { path = "/ephemeral/dynamo/lib/protocols" }
+dynamo-parsers = { path = "/ephemeral/dynamo/lib/parsers" }
+
+# Web framework
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# SSE streaming
+futures = "0.3"
+async-stream = "0.3"
+
+# Utilities
+uuid = { version = "1", features = ["v4"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
