@@ -1,28 +1,6 @@
-# Three Dynamo Crates for Rust Inference Frontends
+# Demo Rust Inference Server
 
 A working OpenAI/Anthropic-compatible server in ~600 lines of Rust, built on three crates from [NVIDIA Dynamo](https://github.com/ai-dynamo/dynamo). Each crate is independently usable; this server exists to show what they look like wired together end-to-end.
-
-```
-   tokenizer.json (HF Hub)
-            │
-            ▼
-  ┌──────────────────┐
-  │ dynamo-tokenizers│  encode / decode / detokenization tricks
-  └──────────────────┘
-            │
-            ▼
-  ┌──────────────────┐
-  │ dynamo-protocols │  chat / completions / responses / anthropic types
-  └──────────────────┘
-            │
-            ▼
-  ┌──────────────────┐
-  │ dynamo-parsers   │  18+ tool-call + reasoning parsers (incl. DSv4 day-0)
-  └──────────────────┘
-            │
-            ▼
-       OpenAI-shaped JSON / SSE response
-```
 
 ## The crates
 
@@ -36,18 +14,16 @@ Each can be adopted on its own. This demo binary uses all three.
 
 ## Why we want this shared
 
-Our goal is for the inference community to explore and adopt these crates so we have **one set of Rust implementations** for these pieces going forward. We currently test all three together against coding agents (Codex and Claude) in our CI to make sure they stay fully spec-compliant. The NVIDIA Dynamo team will be maintaining these for the long term and is committed to **day-0 support for all new models and techniques**.
-
-We'll be moving these three crates into their own repo outside of Dynamo and giving the SGLang team and other members of the inference community ownership/maintainer privileges — so they aren't just owned by Dynamo. If you're building a Rust frontend for an inference engine, we'd love to talk about whether these could eliminate some of your maintenance burden and free your team up to focus on the things that actually matter: the frontend server, the scheduler, and the model forward pass.
+Our goal is for the inference community to explore and adopt these crates so we have **one set of Rust implementations** for these pieces going forward. We currently test all three together against coding agents (Codex and Claude) in our CI to make sure they stay fully spec-compliant. The NVIDIA Dynamo team will be maintaining these for the long term and is committed to **day-0 support for all new models and techniques**. We want to share ownership with the entire inference and model building community! Inference engineering teams should focus on things that actually matter: the frontend server, the scheduler, and the model forward pass.
 
 ## Run it
 
 ```bash
+# build the binary
 make server                                                  # clone dynamo + build
+# run the server (can use any HF model)
 cargo run --release -- --model Qwen/Qwen2.5-0.5B-Instruct    # run
 ```
-
-`make server` clones `ai-dynamo/dynamo` (main) into `./.dynamo` (gitignored) and builds the release binary. Then run it with any HuggingFace repo — the tokenizer is fetched from the Hub on first run and cached.
 
 ```
 $ cargo run --release -- --help
@@ -57,25 +33,19 @@ $ cargo run --release -- --help
   --http-port <PORT>       default 3000
 ```
 
-Use an existing dynamo checkout instead of cloning:
-
-```bash
-make server DYNAMO_SRC=/path/to/dynamo
-```
-
 ## What each endpoint demonstrates
 
-| Endpoint | API | Crate(s) exercised |
-|---|---|---|
-| `POST /v1/chat/completions` | OpenAI Chat (streaming + tool calls) | protocols, parsers, tokenizers |
-| `POST /v1/completions` | OpenAI Completions | protocols, tokenizers |
-| `POST /v1/responses` | OpenAI Responses | protocols, tokenizers |
-| `POST /v1/messages` | Anthropic Messages (streaming) | protocols, tokenizers |
-| `POST /v1/tokenize` | encode → token IDs | tokenizers |
-| `POST /v1/detokenize` | token IDs → text | tokenizers |
-| `POST /v1/tool-parse` | tool-call parser (15+ formats) | parsers |
-| `POST /v1/reasoning-parse` | reasoning parser (deepseek_r1, qwen3, gpt_oss, kimi_k25, dsv4, …) | parsers |
-| `GET /health` | — | — |
+| Endpoint                    | API                                                               | Crate(s) exercised             |
+| --------------------------- | ----------------------------------------------------------------- | ------------------------------ |
+| `POST /v1/chat/completions` | OpenAI Chat (streaming + tool calls)                              | protocols, parsers, tokenizers |
+| `POST /v1/completions`      | OpenAI Completions                                                | protocols, tokenizers          |
+| `POST /v1/responses`        | OpenAI Responses                                                  | protocols, tokenizers          |
+| `POST /v1/messages`         | Anthropic Messages (streaming)                                    | protocols, tokenizers          |
+| `POST /v1/tokenize`         | encode → token IDs                                                | tokenizers                     |
+| `POST /v1/detokenize`       | token IDs → text                                                  | tokenizers                     |
+| `POST /v1/tool-parse`       | tool-call parser (15+ formats)                                    | parsers                        |
+| `POST /v1/reasoning-parse`  | reasoning parser (deepseek_r1, qwen3, gpt_oss, kimi_k25, dsv4, …) | parsers                        |
+| `GET /health`               | —                                                                 | —                              |
 
 ## Examples
 
