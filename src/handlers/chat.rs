@@ -7,14 +7,19 @@ use std::convert::Infallible;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::Json;
+use axum::extract::State;
 use axum::response::{IntoResponse, Response, sse::{Event, KeepAlive, Sse}};
 use futures::stream::Stream;
 
 use dynamo_protocols::types::*;
 
 use crate::echo;
+use crate::engine::AppState;
 
-pub async fn handler(Json(req): Json<CreateChatCompletionRequest>) -> Response {
+pub async fn handler(
+    State(state): State<AppState>,
+    Json(req): Json<CreateChatCompletionRequest>,
+) -> Response {
     let model = req.model.clone();
     let text = echo::extract_chat_text(&req.messages);
     let id = format!("chatcmpl-{}", uuid::Uuid::new_v4());
@@ -103,12 +108,17 @@ pub async fn handler(Json(req): Json<CreateChatCompletionRequest>) -> Response {
                 stop_reason: None,
                 logprobs: None,
             }],
-            usage: Some(CompletionUsage {
-                prompt_tokens: text.len() as u32 / 4,
-                completion_tokens: text.len() as u32 / 4,
-                total_tokens: text.len() as u32 / 2,
-                prompt_tokens_details: None,
-                completion_tokens_details: None,
+            usage: Some({
+                let echo_text = format!("[echo] {text}");
+                let prompt_tokens = state.count_tokens(&text);
+                let completion_tokens = state.count_tokens(&echo_text);
+                CompletionUsage {
+                    prompt_tokens,
+                    completion_tokens,
+                    total_tokens: prompt_tokens + completion_tokens,
+                    prompt_tokens_details: None,
+                    completion_tokens_details: None,
+                }
             }),
             system_fingerprint: None,
             service_tier: None,

@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# The two crates being showcased
-dynamo-protocols = { path = "/ephemeral/dynamo/lib/protocols" }
-dynamo-parsers = { path = "/ephemeral/dynamo/lib/parsers" }
+# Three Dynamo crates, fetched into ./.dynamo by `make` (clones ai-dynamo/dynamo main).
+# Set DYNAMO_SRC=/path/to/dynamo to use an existing checkout instead.
+dynamo-protocols  = { path = ".dynamo/lib/protocols" }
+dynamo-parsers    = { path = ".dynamo/lib/parsers" }
+dynamo-tokenizers = { path = ".dynamo/lib/tokenizers" }
 
 # Web framework
 axum = "0.8"
@@ -25,3 +27,8 @@ async-stream = "0.3"
 uuid = { version = "1", features = ["v4"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI + HF Hub fetch (downloads tokenizer.json on demand via --model)
+clap = { version = "4", features = ["derive", "env"] }
+hf-hub = { version = "0.4", default-features = false, features = ["tokio", "rustls-tls"] }
+anyhow = "1"

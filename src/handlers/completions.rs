@@ -6,6 +6,7 @@ use std::convert::Infallible;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use axum::Json;
+use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response, sse::{Event, KeepAlive, Sse}};
 use futures::stream::Stream;
@@ -13,8 +14,12 @@ use futures::stream::Stream;
 use dynamo_protocols::types::*;
 
 use crate::echo;
+use crate::engine::AppState;
 
-pub async fn handler(Json(req): Json<CreateCompletionRequest>) -> Response {
+pub async fn handler(
+    State(state): State<AppState>,
+    Json(req): Json<CreateCompletionRequest>,
+) -> Response {
     let model = req.model.clone();
     let text = match echo::extract_completion_text(&req.prompt) {
         Ok(t) => t,
@@ -43,12 +48,16 @@ pub async fn handler(Json(req): Json<CreateCompletionRequest>) -> Response {
                 finish_reason: Some(CompletionFinishReason::Stop),
                 logprobs: None,
             }],
-            usage: Some(CompletionUsage {
-                prompt_tokens: text.len() as u32 / 4,
-                completion_tokens: echo_text.len() as u32 / 4,
-                total_tokens: (text.len() + echo_text.len()) as u32 / 4,
-                prompt_tokens_details: None,
-                completion_tokens_details: None,
+            usage: Some({
+                let prompt_tokens = state.count_tokens(&text);
+                let completion_tokens = state.count_tokens(&echo_text);
+                CompletionUsage {
+                    prompt_tokens,
+                    completion_tokens,
+                    total_tokens: prompt_tokens + completion_tokens,
+                    prompt_tokens_details: None,
+                    completion_tokens_details: None,
+                }
             }),
             system_fingerprint: None,
         };
